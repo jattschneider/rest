@@ -1,4 +1,4 @@
-# Go Config
+# Go Rest
 
 Rest is a Go library that implements a REST JSON client.
 
