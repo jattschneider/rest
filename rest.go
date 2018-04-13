@@ -21,6 +21,9 @@ var Timeout = defaultTimeout
 // TransportTimeout is a exported func() time.Duration that returns a time.Duration to setup the http.Client
 var TransportTimeout = defaultTransportTimeout
 
+// Authentication is a exported func(r *http.Request) that should be used to setup http.Request authentication
+var Authentication = func(r *http.Request) {}
+
 // ResponseEntity struct represents a HTTP response.
 type ResponseEntity struct {
 	StatusCode int
@@ -58,6 +61,7 @@ func defaultRequestCallback(r *http.Request) {
 	r.Header.Add("Accept", "application/json")
 	r.Header.Add("Content-Type", "application/json")
 	r.Header.Add("Cache-Control", "no-cache")
+	Authentication(r)
 }
 
 func exchange(client *http.Client, timeout time.Duration, url, method string, body io.Reader, requestCallback func(r *http.Request)) (ResponseEntity, error) {

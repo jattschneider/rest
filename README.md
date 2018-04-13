@@ -12,6 +12,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 
@@ -20,10 +21,16 @@ import (
 
 func init() {
 	flag.Parse()
+	rest.Authentication = func(r *http.Request) {
+		r.SetBasicAuth("user", "password")
+	}
 }
 
 func main() {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		username, password, ok := r.BasicAuth()
+		fmt.Printf("BasicAuth usr: %v pwd: %v ok?: %v\n", username, password, ok)
+	}))
 
 	re, err := rest.Get(ts.URL)
 	if err != nil || re.StatusCode != http.StatusOK {
