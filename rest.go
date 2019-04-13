@@ -12,18 +12,6 @@ import (
 	"time"
 )
 
-// Client is a exported func() *http.Client that builds a http.Client
-var Client = defaultClient
-
-// Timeout is a exported func() time.Duration that returns a time.Duration to setup the http.Client
-var Timeout = defaultTimeout
-
-// TransportTimeout is a exported func() time.Duration that returns a time.Duration to setup the http.Client
-var TransportTimeout = defaultTransportTimeout
-
-// Authentication is a exported func(r *http.Request) that should be used to setup http.Request authentication
-var Authentication = func(r *http.Request) {}
-
 // ResponseEntity struct represents a HTTP response.
 type ResponseEntity struct {
 	StatusCode int
@@ -31,37 +19,43 @@ type ResponseEntity struct {
 	Body       []byte
 }
 
+type Client struct {
+}
+
+func New() *Client {
+	return &Client{}
+}
+
 // BodyString resturns a ResponseEntity body as string.
 func (re *ResponseEntity) BodyString() string {
 	return string(re.Body)
 }
 
-func defaultTimeout() time.Duration {
+func (c *Client) Timeout() time.Duration {
 	return 10 * time.Second
 }
 
-func defaultTransportTimeout() time.Duration {
+func (c *Client) TransportTimeout() time.Duration {
 	return 5 * time.Second
 }
 
-func defaultClient() *http.Client {
+func (c *Client) NewHTTPClient() *http.Client {
 	var transport = &http.Transport{
 		Dial: (&net.Dialer{
-			Timeout: TransportTimeout(),
+			Timeout: c.TransportTimeout(),
 		}).Dial,
-		TLSHandshakeTimeout: TransportTimeout(),
+		TLSHandshakeTimeout: c.TransportTimeout(),
 	}
 	return &http.Client{
-		Timeout:   Timeout(),
+		Timeout:   c.Timeout(),
 		Transport: transport,
 	}
 }
 
-func defaultRequestCallback(r *http.Request) {
+func JSONRequestCallback(r *http.Request) {
 	r.Header.Add("Accept", "application/json")
 	r.Header.Add("Content-Type", "application/json")
 	r.Header.Add("Cache-Control", "no-cache")
-	Authentication(r)
 }
 
 func exchange(client *http.Client, timeout time.Duration, url, method string, body io.Reader, requestCallback func(r *http.Request)) (ResponseEntity, error) {
@@ -107,39 +101,39 @@ func DecodeJSON(b []byte, v interface{}) error {
 }
 
 // Exchange generic function that exchanges/requests HTTP operations/verbs
-func Exchange(url, method string, body io.Reader, requestCallback func(r *http.Request)) (ResponseEntity, error) {
-	return exchange(Client(), Timeout(), url, method, body, requestCallback)
+func (c *Client) Exchange(url, method string, body io.Reader, requestCallback func(r *http.Request)) (ResponseEntity, error) {
+	return exchange(c.NewHTTPClient(), c.Timeout(), url, method, body, requestCallback)
 }
 
 // Get gets the content from the given URL
-func Get(url string) (ResponseEntity, error) {
-	return Exchange(url, http.MethodGet, nil, defaultRequestCallback)
+func (c *Client) Get(url string, requestCallback func(r *http.Request)) (ResponseEntity, error) {
+	return c.Exchange(url, http.MethodGet, nil, requestCallback)
 }
 
 // Head returns the headers from the given URL
-func Head(url string) (http.Header, error) {
-	re, err := Exchange(url, http.MethodHead, nil, defaultRequestCallback)
+func (c *Client) Head(url string, requestCallback func(r *http.Request)) (http.Header, error) {
+	re, err := c.Exchange(url, http.MethodHead, nil, requestCallback)
 	return re.Header, err
 }
 
 // Post posts body content to the given URL
-func Post(url string, body io.Reader) (ResponseEntity, error) {
-	return Exchange(url, http.MethodPost, body, defaultRequestCallback)
+func (c *Client) Post(url string, body io.Reader, requestCallback func(r *http.Request)) (ResponseEntity, error) {
+	return c.Exchange(url, http.MethodPost, body, requestCallback)
 }
 
 // Put puts the body content to the given URL
-func Put(url string, body io.Reader) (ResponseEntity, error) {
-	return Exchange(url, http.MethodPut, body, defaultRequestCallback)
+func (c *Client) Put(url string, body io.Reader, requestCallback func(r *http.Request)) (ResponseEntity, error) {
+	return c.Exchange(url, http.MethodPut, body, requestCallback)
 }
 
 // Patch patches the body content to the given URL
-func Patch(url string, body io.Reader) (ResponseEntity, error) {
-	return Exchange(url, http.MethodPatch, body, defaultRequestCallback)
+func (c *Client) Patch(url string, body io.Reader, requestCallback func(r *http.Request)) (ResponseEntity, error) {
+	return c.Exchange(url, http.MethodPatch, body, requestCallback)
 }
 
 // OptionsForAllow returns the allowed HTTP methods
-func OptionsForAllow(url string) ([]string, error) {
-	re, err := Exchange(url, http.MethodOptions, nil, defaultRequestCallback)
+func (c *Client) OptionsForAllow(url string, requestCallback func(r *http.Request)) ([]string, error) {
+	re, err := c.Exchange(url, http.MethodOptions, nil, requestCallback)
 	allowHeader := re.Header.Get("Allow")
 	if len(allowHeader) > 0 {
 		return strings.Split(allowHeader, ","), err
@@ -148,7 +142,7 @@ func OptionsForAllow(url string) ([]string, error) {
 }
 
 // Delete deletes from the given URL
-func Delete(url string) error {
-	_, err := Exchange(url, http.MethodDelete, nil, defaultRequestCallback)
+func (c *Client) Delete(url string, requestCallback func(r *http.Request)) error {
+	_, err := c.Exchange(url, http.MethodDelete, nil, requestCallback)
 	return err
 }

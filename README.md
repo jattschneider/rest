@@ -21,9 +21,11 @@ import (
 
 func init() {
 	flag.Parse()
-	rest.Authentication = func(r *http.Request) {
-		r.SetBasicAuth("user", "password")
-	}
+}
+
+var SampleRequestCallback = func(r *http.Request) {
+	rest.JSONRequestCallback(r)
+	r.SetBasicAuth("user", "password")
 }
 
 func main() {
@@ -32,24 +34,26 @@ func main() {
 		fmt.Printf("BasicAuth usr: %v pwd: %v ok?: %v\n", username, password, ok)
 	}))
 
-	re, err := rest.Get(ts.URL)
+	var c = rest.New()
+
+	re, err := c.Get(ts.URL, SampleRequestCallback)
 	if err != nil || re.StatusCode != http.StatusOK {
 		return
 	}
 
 	payload := rest.EncodeJSON(&struct{ SomeProperty string }{SomeProperty: "struct property value"})
 
-	re, err = rest.Put(ts.URL, payload)
+	re, err = c.Put(ts.URL, payload, SampleRequestCallback)
 	if err != nil || re.StatusCode != http.StatusOK {
 		return
 	}
 
-	re, err = rest.Post(ts.URL, payload)
+	re, err = c.Post(ts.URL, payload, SampleRequestCallback)
 	if err != nil || re.StatusCode != http.StatusOK {
 		return
 	}
 
-	re, err = rest.Patch(ts.URL, payload)
+	re, err = c.Patch(ts.URL, payload, SampleRequestCallback)
 	if err != nil || re.StatusCode != http.StatusOK {
 		return
 	}

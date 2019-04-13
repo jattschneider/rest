@@ -16,6 +16,8 @@ func init() {
 	flag.Set("v", "3")
 }
 
+var c = New()
+
 const allowValue = "POST, GET, OPTIONS, PATCH, PUT, DELETE"
 
 const accessControlAllowMethodsValue = "POST, GET, OPTIONS, PATCH, PUT, DELETE"
@@ -67,7 +69,7 @@ func TestShouldHead(t *testing.T) {
 	ts := testServer()
 	defer ts.Close()
 
-	header, err := Head(ts.URL)
+	header, err := c.Head(ts.URL, JSONRequestCallback)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -84,7 +86,7 @@ func TestShouldGet(t *testing.T) {
 	ts := testServer()
 	defer ts.Close()
 
-	re, err := Get(ts.URL)
+	re, err := c.Get(ts.URL, JSONRequestCallback)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -109,7 +111,7 @@ func TestShouldPost(t *testing.T) {
 	defer ts.Close()
 
 	payload := strings.NewReader("{\"someProperty\":\"someValue\"}")
-	re, err := Post(ts.URL, payload)
+	re, err := c.Post(ts.URL, payload, JSONRequestCallback)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -127,7 +129,7 @@ func TestShouldPut(t *testing.T) {
 	defer ts.Close()
 
 	payload := EncodeJSON(&struct{ SomeProperty string }{SomeProperty: "struct property value"})
-	re, err := Put(ts.URL, payload)
+	re, err := c.Put(ts.URL, payload, JSONRequestCallback)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -145,7 +147,7 @@ func TestShouldPatch(t *testing.T) {
 	defer ts.Close()
 
 	payload := strings.NewReader("{\"someProperty\":\"someValue\"}")
-	re, err := Patch(ts.URL, payload)
+	re, err := c.Patch(ts.URL, payload, JSONRequestCallback)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -162,7 +164,7 @@ func TestShouldOptionsForAllow(t *testing.T) {
 	ts := testServer()
 	defer ts.Close()
 
-	allows, err := OptionsForAllow(ts.URL)
+	allows, err := c.OptionsForAllow(ts.URL, JSONRequestCallback)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
