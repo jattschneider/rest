@@ -1,7 +1,7 @@
 package rest
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -51,6 +51,7 @@ func TestShouldGet(t *testing.T) {
 
 	assertHeader(t, re.Header, "Access-Control-Allow-Methods", "POST, GET, OPTIONS, PATCH, PUT, DELETE")
 	assertHeader(t, re.Header, "Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+	assertStatusCode(t, re.StatusCode, http.StatusOK)
 }
 
 func TestShouldPost(t *testing.T) {
@@ -70,6 +71,7 @@ func TestShouldPost(t *testing.T) {
 
 	assertHeader(t, re.Header, "Access-Control-Allow-Methods", "POST, GET, OPTIONS, PATCH, PUT, DELETE")
 	assertHeader(t, re.Header, "Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+	assertStatusCode(t, re.StatusCode, http.StatusCreated)
 }
 
 func TestShouldPut(t *testing.T) {
@@ -89,6 +91,7 @@ func TestShouldPut(t *testing.T) {
 
 	assertHeader(t, re.Header, "Access-Control-Allow-Methods", "POST, GET, OPTIONS, PATCH, PUT, DELETE")
 	assertHeader(t, re.Header, "Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+	assertStatusCode(t, re.StatusCode, http.StatusOK)
 }
 
 func TestShouldPatch(t *testing.T) {
@@ -108,6 +111,7 @@ func TestShouldPatch(t *testing.T) {
 
 	assertHeader(t, re.Header, "Access-Control-Allow-Methods", "POST, GET, OPTIONS, PATCH, PUT, DELETE")
 	assertHeader(t, re.Header, "Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+	assertStatusCode(t, re.StatusCode, http.StatusOK)
 }
 
 func TestShouldOptionsForAllow(t *testing.T) {
@@ -130,12 +134,24 @@ func TestShouldOptionsForAllow(t *testing.T) {
 	}
 }
 
+func TestShouldDelete(t *testing.T) {
+	c := New()
+	ts := testServer()
+	defer ts.Close()
+
+	err := c.Delete(ts.URL, JSONRequestCallback)
+	if err != nil {
+		t.Errorf("Error: %v", err)
+	}
+}
+
 func testHandler(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(30 * time.Millisecond)
+
 	allowValue := "POST, GET, OPTIONS, PATCH, PUT, DELETE"
 	accessControlAllowMethodsValue := "POST, GET, OPTIONS, PATCH, PUT, DELETE"
 	accessControlAllowHeadersValue := "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization"
 
-	time.Sleep(1 * time.Second)
 	if origin := r.Header.Get("Origin"); origin != "" {
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 	}
@@ -144,13 +160,23 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Headers", accessControlAllowHeadersValue)
 
 	switch r.Method {
+	case http.MethodDelete:
+		w.WriteHeader(http.StatusNoContent)
 	case http.MethodGet:
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("{\"someProperty\":\"someValue\"}"))
-	case http.MethodPatch, http.MethodPost, http.MethodPut:
-		rBody, err := ioutil.ReadAll(r.Body)
+	case http.MethodPatch, http.MethodPut:
+		defer r.Body.Close()
+		rBody, err := io.ReadAll(r.Body)
 		if err == nil {
 			w.WriteHeader(http.StatusOK)
+			w.Write(rBody)
+		}
+	case http.MethodPost:
+		defer r.Body.Close()
+		rBody, err := io.ReadAll(r.Body)
+		if err == nil {
+			w.WriteHeader(http.StatusCreated)
 			w.Write(rBody)
 		}
 	default:

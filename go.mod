@@ -1,3 +1,3 @@
 module github.com/jattschneider/rest
 
-go 1.15
+go 1.23.6

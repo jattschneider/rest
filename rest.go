@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"strings"
@@ -26,7 +25,12 @@ func New() *Client {
 	return &Client{}
 }
 
-// BodyString resturns a ResponseEntity body as string.
+// BodyReader resturns a ResponseEntity body as a Reader.
+func (re *ResponseEntity) BodyReader() *bytes.Reader {
+	return bytes.NewReader(re.Body)
+}
+
+// BodyString resturns a ResponseEntity body as a string.
 func (re *ResponseEntity) BodyString() string {
 	return string(re.Body)
 }
@@ -80,7 +84,7 @@ func exchange(client *http.Client, timeout time.Duration, url, method string, bo
 	}
 
 	defer res.Body.Close()
-	resBody, err := ioutil.ReadAll(res.Body)
+	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		return ResponseEntity{Header: make(http.Header)}, err
 	}
