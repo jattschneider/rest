@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -19,10 +18,15 @@ type ResponseEntity struct {
 }
 
 type Client struct {
+	httpClient *http.Client
+	timeout    time.Duration
 }
 
 func New() *Client {
-	return &Client{}
+	return &Client{
+		httpClient: buildHTTPClient(),
+		timeout:    timeout(),
+	}
 }
 
 // BodyReader resturns a ResponseEntity body as a Reader.
@@ -33,27 +37,6 @@ func (re *ResponseEntity) BodyReader() *bytes.Reader {
 // BodyString resturns a ResponseEntity body as a string.
 func (re *ResponseEntity) BodyString() string {
 	return string(re.Body)
-}
-
-func (c *Client) Timeout() time.Duration {
-	return 10 * time.Second
-}
-
-func (c *Client) TransportTimeout() time.Duration {
-	return 5 * time.Second
-}
-
-func (c *Client) NewHTTPClient() *http.Client {
-	var transport = &http.Transport{
-		Dial: (&net.Dialer{
-			Timeout: c.TransportTimeout(),
-		}).Dial,
-		TLSHandshakeTimeout: c.TransportTimeout(),
-	}
-	return &http.Client{
-		Timeout:   c.Timeout(),
-		Transport: transport,
-	}
 }
 
 func JSONRequestCallback(r *http.Request) {
@@ -106,7 +89,7 @@ func DecodeJSON(b []byte, v interface{}) error {
 
 // Exchange generic function that exchanges/requests HTTP operations/verbs
 func (c *Client) Exchange(url, method string, body io.Reader, requestCallback func(r *http.Request)) (ResponseEntity, error) {
-	return exchange(c.NewHTTPClient(), c.Timeout(), url, method, body, requestCallback)
+	return exchange(c.httpClient, c.timeout, url, method, body, requestCallback)
 }
 
 // Get gets the content from the given URL
